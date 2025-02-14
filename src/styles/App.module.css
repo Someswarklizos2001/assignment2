@@ -3,6 +3,7 @@
     justify-content: center;
     align-items: center;
     flex-direction: column;
+    margin-bottom: 50px;
 }
 .h1{
   color:#007bff;
@@ -35,4 +36,23 @@
 .icon{
   font-size: 1.5rem;
   cursor: pointer;
+}
+.flex{
+  display: flex;
+  justify-content:space-between;
+  width: 89vw;
+  margin-top: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.notficationParent{
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 95vw;
+  padding: 10px;
+  border-radius: 10px;
 }

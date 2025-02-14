@@ -3,13 +3,14 @@
     max-height: 400px !important;
     margin-top: 20px !important;
     text-align: center;
+
   }
   .mainTable{
     max-height: 400px !important;
     color: #d1e7ff !important;
   }
   .center{
-    height: 80vh;
+    height: 42vh;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;

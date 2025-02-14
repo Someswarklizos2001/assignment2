@@ -3,17 +3,12 @@ import Modal from "react-bootstrap/Modal";
 import "bootstrap/dist/css/bootstrap.min.css";
 import styles from "../styles/modal.module.css";
 import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
 import Form from "react-bootstrap/Form";
-// import { yupResolver } from "@hookform/resolvers/yup";
-// import * as yup from "yup";
-// import { useForm, Controller } from "react-hook-form";
 import axios from "axios";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import toast from "react-hot-toast";
-import { FaCamera } from "react-icons/fa";
 import { CircularProgress } from "./CircularProgress";
+import { Dropdown } from "react-bootstrap";
 
 // const schema = yup.object().shape({
 //   first_name: yup.string().required("First name is required"),
@@ -35,145 +30,131 @@ import { CircularProgress } from "./CircularProgress";
 //     .matches(/^\d{10}$/, "Phone number must be 10 digits"),
 // });
 
-export const EntryCreateModal = ({ show, setShow, setBrokers }) => {
+export const EntryCreateModal = ({ show, setShow, setNotificationArray }) => {
   const handleClose = () => setShow(false);
-  const fileInputRef = useRef(null);
-  const [preview, setPreview] = useState("");
-  const [file, setFile] = useState("");
   const [load, setLoad] = useState(false);
+  const [notification, setNotification] = useState("");
+  const [notificationLabel, setNotificationLabel] = useState(
+    "Select a notification"
+  );
+  const [email, setEmail] = useState("");
 
-  const handleImageClick = () => {
-    fileInputRef.current.click();
-  };
+  console.log(notification);
 
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setFile(file);
-      setPreview(imageUrl);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoad(true);
+
+    // Validate notification selection
+    if (!notification || notificationLabel === "Select a notification") {
+      toast.error("Please select a notification from dropdown");
+      setLoad(false);
+      return;
+    }
+
+    // Validate email
+    if (!email || !email.includes("@")) {
+      toast.error("Please provide a valid email");
+      setLoad(false);
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_BASE_URL}/private/auth/notification`,
+        {
+          email: email,
+          type: notification,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.REACT_APP_TOKEN}`,
+          },
+        }
+      );
+
+      const newNotification = {
+        [notification]: {
+          email: email,
+        },
+      };
+
+      // Update the state
+      setNotificationArray((prev) => [...prev, newNotification]);
+
+      toast.success(response.data.message || "Notification added successfully");
+    } catch (err) {
+      console.error("API Error:", err);
+      toast.error(err?.response?.data?.message || "Something went wrong.");
+    } finally {
+      setLoad(false);
+      setEmail("");
+      setNotification("");
+      setNotificationLabel("Select a notification");
+      handleClose();
     }
   };
 
-//   const {
-//     handleSubmit,
-//     control,
-//     reset,
-//     formState: { errors },
-//   } = useForm({
-//     resolver: yupResolver(schema),
-//   });
-
-  const onSubmit = (data) => {
-    if (file.length === 0) return toast.error("Please upload profile picture");
-    setLoad(true);
-    const formData = new FormData();
-
-    formData.append("target_type", "broker");
-    formData.append("method", "create");
-    formData.append("target_id", "undefined");
-    formData.append("underwriter_to_assign", "");
-    formData.append("first_name", data.first_name);
-    formData.append("last_name", data.last_name);
-    formData.append("email", data.email);
-    formData.append("password", data.password);
-    formData.append("company_name", data.company_name);
-    formData.append("phone_number", data.phone_number);
-    formData.append("profile_pciture", file);
-    axios
-      .post(`${process.env.REACT_APP_BASE_URL}/create_or_edit_user`, formData, {
-        headers: {
-          Authorization: `Bearer ${process.env.REACT_APP_TOKEN}`,
-        },
-      })
-      .then((res) => {
-        setBrokers((prev) => [
-          ...prev,
-          {
-            first_name: data.first_name,
-            last_name: data.last_name,
-            email: data.email,
-            phone_number: data.phone_number,
-            company_name: data.company_name,
-          },
-        ]);
-        toast.success(res.data.message);
-        setPreview("");
-        setFile("");
-        // reset({
-        //   first_name: "",
-        //   last_name: "",
-        //   email: "",
-        //   password: "",
-        //   company_name: "",
-        //   phone_number: "",
-        // });
-
-        handleClose();
-      })
-      .catch((err) => {
-        console.log(err);
-        toast.error(err?.response?.data?.message);
-      })
-      .finally(() => {
-        setLoad(false);
-      });
-  };
+  const notificationOptions = [
+    { value: "OPEN", label: "Order open alert" },
+    { value: "ON_HOLD", label: "Low funds order" },
+    { value: "NON_API", label: "Manual fulfillment" },
+    { value: "FUND_INVOICE", label: "Payment invoice" },
+    { value: "QUICK_BOOK", label: "Order report" },
+    { value: "INVENTORY_REPORT", label: "Inventory report" },
+    { value: "LOW_FUND_ALERT", label: "Low fund alert" },
+    { value: "OUT_OF_STOCK", label: "Out Of Stock" },
+  ];
 
   return (
     <Modal show={show} onHide={handleClose}>
       <Modal.Header closeButton>
-        <Modal.Title style={{ color: "#007bff" }}>Add New Broker</Modal.Title>
+        <Modal.Title style={{ color: "#007bff" }}>Add Notification</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
-        <Form >
-          <div>Profile Picture</div>
-
-          <div className={styles.imageIconDiv}>
-            <img
-              src={preview === "" ? "../../profileImage.jpg" : preview}
-              alt="Profile"
-              className={styles.img}
-              onClick={handleImageClick}
-            />
-
-            <p className={styles.profileIcon} onClick={handleImageClick}>
-              <FaCamera />
-            </p>
-          </div>
-
+        <Form onSubmit={handleSubmit}>
           <Container>
-            <input
-              type="file"
-              ref={fileInputRef}
-              hidden
-              accept="image/*"
-              onChange={handleFileChange}
-            />
+            <Form.Label>
+              Notification <span className={styles.red}>*</span>
+            </Form.Label>
+
+            <Dropdown>
+              <Dropdown.Toggle
+                variant="success"
+                id="dropdown-basic"
+                style={{ width: "440px" }}
+              >
+                {notificationLabel}
+              </Dropdown.Toggle>
+
+              <Dropdown.Menu style={{ width: "440px" }}>
+                {notificationOptions.map((option) => (
+                  <Dropdown.Item
+                    key={option.value}
+                    onClick={() => {
+                      setNotificationLabel(option.label);
+                      setNotification(option.value);
+                    }}
+                  >
+                    {option.label}
+                  </Dropdown.Item>
+                ))}
+              </Dropdown.Menu>
+            </Dropdown>
           </Container>
-         
 
           <Container style={{ marginTop: "5px" }}>
             <Form.Label>
               Email <span className={styles.red}>*</span>
             </Form.Label>
-            {/* <Controller
-              control={control}
-              name="email"
-              defaultValue=""
-              render={({ field }) => (
-                <Form.Control
-                  {...field}
-                  type="email"
-                  placeholder="Enter email"
-                  style={{ marginTop: "-5px" }}
-                />
-              )}
-            /> */}
-            <Form.Text className="text-danger">
-              {/* {errors.email?.message} */}
-            </Form.Text>
+
+            <Form.Control
+              type="email"
+              placeholder="Enter email"
+              style={{ marginTop: "-5px" }}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </Container>
 
           <div className={styles.ButtonDiv}>
