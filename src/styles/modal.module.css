@@ -1,0 +1,33 @@
+.img{
+    width: 150px;
+    height: 150px;
+    cursor: pointer;
+    border-radius: 50%;
+    position: relative;
+    object-fit: cover;
+}
+.ButtonDiv{
+    margin-top: 20px;
+    margin-left: 10px;
+}
+.submitBtn{
+    margin-right: 10px;
+}
+.red{
+    color: red;
+}
+.profileIcon{
+    position: absolute;
+    bottom: -65px;
+    right: 5px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+}
+.imageIconDiv{
+    position: relative;
+    display: inline;
+}
