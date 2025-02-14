@@ -1,76 +1,135 @@
 import Table from "react-bootstrap/Table";
-import { useState } from "react";
-import styles from "../styles/Notification.module.css";
+import { useRef, useState } from "react";
 import { HiOutlineDotsVertical } from "react-icons/hi";
-import { Modal, Button } from "react-bootstrap";
-import { CircularProgress } from "./CircularProgress";
+import { Modal, Button, ProgressBar, Nav, Tab } from "react-bootstrap";
 import dayjs from "dayjs";
 import axios from "axios";
 import toast from "react-hot-toast";
+import styles from "../styles/Notification.module.css";
+import { HiDownload, HiTrash, HiUpload } from "react-icons/hi";
+import { CircularProgress } from "./CircularProgress";
 
-export const DocumentTable = ({ load, document, setDocument }) => {
-  const [show, setShow] = useState(false);
+export const DocumentTable = ({ load, documentArray, setDocument }) => {
+  const [showActionModal, setShowActionModal] = useState(false);
+
   const [selectedDoc, setSelectedDoc] = useState(null);
+  const inputRef = useRef(null);
+  const [downloadLoader,setDownloadLoader]=useState(false);
+  const [progress, setProgress] = useState(0);
+  const [selectedFile, setSelectedFile] = useState(null);
 
-  const handleOpen = (doc) => {
+  const handleOpenActionModal = (doc) => {
     setSelectedDoc(doc);
-    setShow(true);
+    setShowActionModal(true);
   };
 
   const handleDelete = () => {
-    setDocument(document.filter((doc) => doc !== selectedDoc));
-    setShow(false);
+    setDocument(documentArray.filter((doc) => doc !== selectedDoc));
+    setShowActionModal(false);
   };
 
-  const handleDownload = () => {
-    axios
-      .get(
+  const handleDownload = async () => {
+
+    setDownloadLoader(true);
+    try {
+      const res = await axios.get(
         `${process.env.REACT_APP_BASE_URL}/private/backoffice/file/upload/document?documentType=${selectedDoc.type}`,
         {
           headers: {
             Authorization: `Bearer ${process.env.REACT_APP_TOKEN}`,
           },
         }
-      )
-      .then((res) => {
-        if (res.status === 200 && res.data.link) {
-          const fileUrl = res.data.link;
-  
-          // Open in a new tab (test if this works)
-          window.open(fileUrl, "_blank");
-  
-          // If opening works, then try force-downloading
-          const a = document.createElement("a");
-          document.body.appendChild(a);
-          a.href = fileUrl;
-          a.download = "document.csv"; // <-- Set filename
-          a.click();
-          document.body.removeChild(a);
-        } else {
-          throw new Error("Invalid response from server");
-        }
-      })
-      .catch((err) => {
-        console.error("Download Error:", err);
-  
-        let errorMessage = "Download failed";
-        if (err.response) {
-          errorMessage = err.response.data?.message || `Error ${err.response.status}: ${err.response.statusText}`;
-        } else if (err.message) {
-          errorMessage = err.message;
-        }
-  
-        toast.error(errorMessage);
-      });
+      );
+
+      if (res.status === 200 && res.data.link) {
+        const fileUrl = res.data.link;
+        const a = document.createElement("a");
+        document.body.appendChild(a);
+        a.href = fileUrl;
+        a.download = "document.csv";
+        a.click();
+        document.body.removeChild(a);
+
+        setTimeout(() => {
+          toast.success("Downloaded successfully!!");
+          setShowActionModal(false);
+        }, 1000);
+
+        setDownloadLoader(false);
+      } else {
+        throw new Error("Invalid response from server");
+      }
+    } catch (err) {
+      console.log(err);
+      const errorMessage = err.response?.data?.message || "Download failed";
+      toast.error(errorMessage);
+      setDownloadLoader(true);
+    }
+
+   
   };
-  
-  
-  
-  
+
+  const handleImageClick = () => {
+    inputRef.current.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setSelectedFile(file);
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+      await axios.post(
+        `${process.env.REACT_APP_BASE_URL}/private/backoffice/file/upload/document?documentType=${selectedDoc.type}`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.REACT_APP_TOKEN}`,
+          },
+          onUploadProgress: (progressEvent) => {
+            const bar = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setProgress(bar);
+          },
+        }
+      );
+
+      await axios
+        .get(
+          `${process.env.REACT_APP_BASE_URL}/private/backoffice/file/upload/document/all`,
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.REACT_APP_TOKEN}`,
+            },
+          }
+        )
+        .then((res) => {
+          console.log(res.data);
+          setDocument(res.data);
+        })
+        .catch((err) => {
+          toast.error(err.response.data.message);
+        });
+
+      toast.success("File uploaded successfully");
+      setProgress(0);
+      setSelectedFile(null);
+      setShowActionModal(false);
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || "Upload failed";
+      toast.error(errorMessage);
+    }
+  };
 
   return (
     <div className={styles.tableContainer}>
-      <h2 style={{ marginLeft: "25px" }}>Document</h2>
       {load ? (
         <div className={styles.center}>
           <CircularProgress />
@@ -86,16 +145,15 @@ export const DocumentTable = ({ load, document, setDocument }) => {
             </tr>
           </thead>
           <tbody>
-            {document.length > 0 ? (
-              document.map((data, index) => (
+            {documentArray.length > 0 ? (
+              documentArray.map((data, index) => (
                 <tr key={index}>
                   <td>{data.type}</td>
                   <td>{data.name}</td>
-                  <td>{dayjs(data.createdAt).format("YYYY-MM-DD HH:mm:ss")}</td>
+                  <td>{dayjs(data.updatedAt).format("YYYY-MM-DD HH:mm:ss")}</td>
                   <td>
                     <HiOutlineDotsVertical
-                      className={styles.dotsIcon}
-                      onClick={() => handleOpen(data)}
+                      onClick={() => handleOpenActionModal(data)}
                       style={{ cursor: "pointer" }}
                     />
                   </td>
@@ -104,7 +162,7 @@ export const DocumentTable = ({ load, document, setDocument }) => {
             ) : (
               <tr>
                 <td colSpan="4" className="text-center">
-                  No Data Available.
+                  No Data Available
                 </td>
               </tr>
             )}
@@ -112,19 +170,85 @@ export const DocumentTable = ({ load, document, setDocument }) => {
         </Table>
       )}
 
-      <Modal show={show} onHide={() => setShow(false)}>
-        <Modal.Body>Actions</Modal.Body>
-        <Modal.Footer>
-          <Button variant="danger" onClick={handleDelete}>
-            Delete
-          </Button>
-          <Button variant="warning" onClick={handleDownload}>
-            Download
-          </Button>
-          <Button variant="secondary" onClick={() => setShow(false)}>
-            Upload
-          </Button>
-        </Modal.Footer>
+      {/* Action Modal */}
+      <Modal
+        show={showActionModal}
+        onHide={() => setShowActionModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Actions</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Tab.Container defaultActiveKey="download">
+            <Nav variant="tabs" className="justify-content-center mb-3">
+              <Nav.Item>
+                <Nav.Link eventKey="download">Download</Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="upload">Upload</Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="delete">Delete</Nav.Link>
+              </Nav.Item>
+            </Nav>
+            <Tab.Content>
+              <Tab.Pane eventKey="delete">
+                <div className={styles.download}>
+                  <HiTrash className={styles.downloadIcon} />
+                  <p>Are you sure you want to delete this document?</p>
+                  <Button variant="danger" onClick={handleDelete}>
+                    Delete
+                  </Button>
+                </div>
+              </Tab.Pane>
+              <Tab.Pane eventKey="download">
+                <div className={styles.download}>
+                  <HiDownload className={styles.downloadIcon} />
+                  <p>Are you sure you want to download this document?</p>
+                  <Button variant="warning" disabled={downloadLoader} onClick={handleDownload}>
+                    {downloadLoader?<CircularProgress/>:"Download"}
+                  </Button>
+                </div>
+              </Tab.Pane>
+              <Tab.Pane eventKey="upload">
+                <div className={styles.download}>
+                  <HiUpload className={styles.downloadIcon} />
+                  {!selectedFile && <p>select a file</p>}
+                  <input
+                    type="file"
+                    hidden
+                    ref={inputRef}
+                    onChange={handleFileChange}
+                  />
+                  {selectedFile && <p>Selected File: {selectedFile.name}</p>}
+                  <div className={styles.flex}>
+                    <Button variant="primary" onClick={handleImageClick}>
+                      Select File
+                    </Button>
+                    {selectedFile && (
+                      <Button variant="success" onClick={handleUpload}>
+                        Upload
+                      </Button>
+                    )}
+                  </div>
+                  {progress > 0 && (
+                    <ProgressBar
+                      now={progress}
+                      label={`${progress}%`}
+                      animated
+                      style={{
+                        height: "10px",
+                        marginTop: "10px",
+                        width: "250px",
+                      }}
+                    />
+                  )}
+                </div>
+              </Tab.Pane>
+            </Tab.Content>
+          </Tab.Container>
+        </Modal.Body>
       </Modal>
     </div>
   );

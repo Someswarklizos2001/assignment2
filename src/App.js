@@ -66,8 +66,11 @@ function App() {
     <div className={styles.center}>
       <p className={styles.h1}>Settings</p>
       <div className={styles.notficationParent}>
+        <div className={styles.flex}>
+          <h2>Document</h2>
+        </div>
         <DocumentTable
-          document={document}
+          documentArray={document}
           load={documentLoad}
           setDocument={setDocument}
         />
