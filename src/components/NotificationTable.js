@@ -63,9 +63,19 @@ export const NotificationTable = ({ load, notification, setNotification }) => {
         }
       )
       .then((res) => {
-        setNotification((prev) =>
-          prev.filter((doc) => Object.keys(doc)[0] !== notificationType)
-        );
+        axios
+          .get(`${process.env.REACT_APP_BASE_URL}/private/auth/notification`, {
+            headers: {
+              Authorization: `Bearer ${process.env.REACT_APP_TOKEN}`,
+            },
+          })
+          .then((res) => {
+            console.log(res.data);
+            setNotification(res.data);
+          })
+          .catch((err) => {
+            toast.error(err.response.data.message);
+          });
         setShow(false);
         toast.success("Notification deleted successfully!");
       })

@@ -5,6 +5,8 @@ import { HiOutlineDotsVertical } from "react-icons/hi";
 import { Modal, Button } from "react-bootstrap";
 import { CircularProgress } from "./CircularProgress";
 import dayjs from "dayjs";
+import axios from "axios";
+import toast from "react-hot-toast";
 
 export const DocumentTable = ({ load, document, setDocument }) => {
   const [show, setShow] = useState(false);
@@ -19,6 +21,52 @@ export const DocumentTable = ({ load, document, setDocument }) => {
     setDocument(document.filter((doc) => doc !== selectedDoc));
     setShow(false);
   };
+
+  const handleDownload = () => {
+    axios
+      .get(
+        `${process.env.REACT_APP_BASE_URL}/private/backoffice/file/upload/document?documentType=${selectedDoc.type}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.REACT_APP_TOKEN}`,
+          },
+        }
+      )
+      .then((res) => {
+        if (res.status === 200 && res.data.link) {
+          const fileUrl = res.data.link;
+  
+          // Open in a new tab (test if this works)
+          window.open(fileUrl, "_blank");
+  
+          // If opening works, then try force-downloading
+          const a = document.createElement("a");
+          document.body.appendChild(a);
+          a.href = fileUrl;
+          a.download = "document.csv"; // <-- Set filename
+          a.click();
+          document.body.removeChild(a);
+        } else {
+          throw new Error("Invalid response from server");
+        }
+      })
+      .catch((err) => {
+        console.error("Download Error:", err);
+  
+        let errorMessage = "Download failed";
+        if (err.response) {
+          errorMessage = err.response.data?.message || `Error ${err.response.status}: ${err.response.statusText}`;
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+  
+        toast.error(errorMessage);
+      });
+  };
+  
+  
+  
+  
 
   return (
     <div className={styles.tableContainer}>
@@ -65,13 +113,16 @@ export const DocumentTable = ({ load, document, setDocument }) => {
       )}
 
       <Modal show={show} onHide={() => setShow(false)}>
-        <Modal.Body>Are you sure you want to delete this document?</Modal.Body>
+        <Modal.Body>Actions</Modal.Body>
         <Modal.Footer>
           <Button variant="danger" onClick={handleDelete}>
             Delete
           </Button>
+          <Button variant="warning" onClick={handleDownload}>
+            Download
+          </Button>
           <Button variant="secondary" onClick={() => setShow(false)}>
-            Cancel
+            Upload
           </Button>
         </Modal.Footer>
       </Modal>

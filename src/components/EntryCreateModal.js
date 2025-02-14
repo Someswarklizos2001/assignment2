@@ -73,16 +73,22 @@ export const EntryCreateModal = ({ show, setShow, setNotificationArray }) => {
         }
       );
 
-      const newNotification = {
-        [notification]: {
-          email: email,
-        },
-      };
-
-      // Update the state
-      setNotificationArray((prev) => [...prev, newNotification]);
-
-      toast.success(response.data.message || "Notification added successfully");
+      if (response) {
+        axios
+          .get(`${process.env.REACT_APP_BASE_URL}/private/auth/notification`, {
+            headers: {
+              Authorization: `Bearer ${process.env.REACT_APP_TOKEN}`,
+            },
+          })
+          .then((res) => {
+            console.log(res.data);
+            setNotificationArray(res.data);
+          })
+          .catch((err) => {
+            toast.error(err.response.data.message);
+          });
+      }
+      toast.success("Notification added successfully");
     } catch (err) {
       console.error("API Error:", err);
       toast.error(err?.response?.data?.message || "Something went wrong.");
