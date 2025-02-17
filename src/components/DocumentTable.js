@@ -14,7 +14,7 @@ export const DocumentTable = ({ load, documentArray, setDocument }) => {
 
   const [selectedDoc, setSelectedDoc] = useState(null);
   const inputRef = useRef(null);
-  const [downloadLoader,setDownloadLoader]=useState(false);
+  const [downloadLoader, setDownloadLoader] = useState(false);
   const [progress, setProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState(null);
 
@@ -29,7 +29,6 @@ export const DocumentTable = ({ load, documentArray, setDocument }) => {
   };
 
   const handleDownload = async () => {
-
     setDownloadLoader(true);
     try {
       const res = await axios.get(
@@ -65,8 +64,6 @@ export const DocumentTable = ({ load, documentArray, setDocument }) => {
       toast.error(errorMessage);
       setDownloadLoader(true);
     }
-
-   
   };
 
   const handleImageClick = () => {
@@ -128,6 +125,43 @@ export const DocumentTable = ({ load, documentArray, setDocument }) => {
     }
   };
 
+  const handleByClick = async (data) => {
+    setDownloadLoader(true);
+    try {
+      const res = await axios.get(
+        `${process.env.REACT_APP_BASE_URL}/private/backoffice/file/upload/document?documentType=${data.type}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.REACT_APP_TOKEN}`,
+          },
+        }
+      );
+
+      if (res.status === 200 && res.data.link) {
+        const fileUrl = res.data.link;
+        const a = document.createElement("a");
+        document.body.appendChild(a);
+        a.href = fileUrl;
+        a.download = "document.csv";
+        a.click();
+        document.body.removeChild(a);
+
+        setTimeout(() => {
+          toast.success("Downloaded successfully!!");
+          setShowActionModal(false);
+        }, 1000);
+
+        setDownloadLoader(false);
+      } else {
+        throw new Error("Invalid response from server");
+      }
+    } catch (err) {
+      console.log(err);
+      const errorMessage = err.response?.data?.message || "Download failed";
+      toast.error(errorMessage);
+      setDownloadLoader(true);
+    }
+  };
   return (
     <div className={styles.tableContainer}>
       {load ? (
@@ -149,7 +183,12 @@ export const DocumentTable = ({ load, documentArray, setDocument }) => {
               documentArray.map((data, index) => (
                 <tr key={index}>
                   <td>{data.type}</td>
-                  <td>{data.name}</td>
+                  <td
+                    onClick={(e) => handleByClick(data)}
+                    style={{ cursor: "pointer", textDecoration: "underline" }}
+                  >
+                    {data.name}
+                  </td>
                   <td>{dayjs(data.updatedAt).format("YYYY-MM-DD HH:mm:ss")}</td>
                   <td>
                     <HiOutlineDotsVertical
@@ -206,8 +245,12 @@ export const DocumentTable = ({ load, documentArray, setDocument }) => {
                 <div className={styles.download}>
                   <HiDownload className={styles.downloadIcon} />
                   <p>Are you sure you want to download this document?</p>
-                  <Button variant="warning" disabled={downloadLoader} onClick={handleDownload}>
-                    {downloadLoader?<CircularProgress/>:"Download"}
+                  <Button
+                    variant="warning"
+                    disabled={downloadLoader}
+                    onClick={handleDownload}
+                  >
+                    {downloadLoader ? <CircularProgress /> : "Download"}
                   </Button>
                 </div>
               </Tab.Pane>
