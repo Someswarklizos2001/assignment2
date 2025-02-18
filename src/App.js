@@ -10,11 +10,11 @@ import axios from "axios";
 import toast from "react-hot-toast";
 
 function App() {
-  const [document, setDocument] = useState([]);
+ 
 
   const [notification, setNotification] = useState();
 
-  const [documentLoad, setDocumentLoad] = useState(false);
+  
   const [notificationLoad, setNotificationLoad] = useState(true);
   const [show, setShow] = useState(false);
 
@@ -22,28 +22,7 @@ function App() {
     setShow(true);
   };
 
-  useEffect(() => {
-    setDocumentLoad(true);
-    axios
-      .get(
-        `${process.env.REACT_APP_BASE_URL}/private/backoffice/file/upload/document/all`,
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.REACT_APP_TOKEN}`,
-          },
-        }
-      )
-      .then((res) => {
-        console.log(res.data);
-        setDocument(res.data);
-      })
-      .catch((err) => {
-        toast.error(err.response.data.message);
-      })
-      .finally(() => {
-        setDocumentLoad(false);
-      });
-  }, []);
+ 
   useEffect(() => {
     axios
       .get(`${process.env.REACT_APP_BASE_URL}/private/auth/notification`, {
@@ -70,9 +49,6 @@ function App() {
           <h2>Document</h2>
         </div>
         <DocumentTable
-          documentArray={document}
-          load={documentLoad}
-          setDocument={setDocument}
         />
       </div>
       <div className={styles.notficationParent}>
